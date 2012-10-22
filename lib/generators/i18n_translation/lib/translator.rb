@@ -21,6 +21,24 @@ module I27r
     end
   end
 
+  module Yandex
+    def _translate(word, lang)
+      w = CGI.escape ActiveSupport::Inflector.humanize(word)
+      json = OpenURI.open_uri("http://translate.yandex.net/api/v1/tr.json/translate?lang=en-#{lang}&text=#{w}").read
+      result = if RUBY_VERSION >= '1.9'
+        require 'json'
+        ::JSON.parse json
+      else
+        ActiveSupport::JSON.decode(json)
+      end
+      if result['code'] == 200
+        result['text']
+      else
+        raise TranslationError.new result.inspect
+      end
+    end
+  end
+
   module BabelFish
     def _translate(word, lang)
       require 'mechanize'
@@ -56,7 +74,7 @@ module I27r
   end
 
   class Translator
-    include BingTranslator
+    include Yandex
 
     def initialize(lang)
       @lang, @cache = lang, {}
